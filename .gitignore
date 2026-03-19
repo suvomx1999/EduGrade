@@ -1,0 +1,37 @@
+# Node.js
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment variables
+**/.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+**/dist/
+**/build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+**/venv/
+**/__pycache__/
+*.pyc
+
+# Local data
+Indian_Student_Exam_Video_Generated.mp4
+loginpage.jpg
+uii.jpg

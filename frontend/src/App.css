@@ -1,0 +1,4 @@
+/* Reset App.css to avoid conflicts with Tailwind */
+#root {
+  width: 100%;
+}
