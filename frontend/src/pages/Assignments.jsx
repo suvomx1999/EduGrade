@@ -55,7 +55,10 @@ const Assignments = () => {
   };
 
   const getSubmissionForQuestion = (questionId) => {
-    return submissions.find((s) => (s.question._id || s.question) === questionId);
+    return submissions.find((s) => {
+      const qId = s.question?._id || s.question;
+      return qId === questionId;
+    });
   };
 
   const filteredQuestions = questions.filter(q => 
@@ -193,7 +196,7 @@ const Assignments = () => {
                           <div>
                             <p className="text-lg font-black text-dash-navy">Evaluation Successful</p>
                             <p className="text-[11px] font-black text-emerald-600 uppercase tracking-[0.2em] mt-1">
-                              Mastery Level: {submission.score} / {submission.maxMarks}
+                              Mastery Level: {submission?.score} / {submission?.maxMarks}
                             </p>
                           </div>
                           <button 

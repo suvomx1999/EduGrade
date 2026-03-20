@@ -18,6 +18,13 @@ import {
   GraduationCap,
   Target
 } from "lucide-react";
+import { 
+  PieChart, 
+  Pie, 
+  Cell, 
+  Tooltip, 
+  ResponsiveContainer 
+} from 'recharts';
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -39,16 +46,14 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const [statsRes, usersRes, qRes, subRes] = await Promise.all([
-        api.get("/admin/stats"),
+      const [statsRes, usersRes, qRes] = await Promise.all([
+        api.get("/auth/admin/stats"),
         api.get("/admin/users"),
         api.get("/questions"),
-        api.get("/admin/submissions"),
       ]);
       setStats(statsRes.data);
       setUsers(usersRes.data);
       setQuestions(qRes.data);
-      setSubmissions(subRes.data);
     } catch (error) {
       console.error("Failed to fetch admin data", error);
     } finally {
@@ -67,9 +72,15 @@ const AdminDashboard = () => {
   };
 
   const summaryStats = [
-    { label: "Total Students", value: stats?.totalUsers || 0, icon: Users, bg: "bg-dash-orange" },
-    { label: "Total Teachers", value: questions.length, icon: GraduationCap, bg: "bg-dash-purple" },
-    { label: "Private Teachers", value: "102", icon: Target, bg: "bg-dash-cyan" },
+    { label: "Academic Entities", value: stats?.userCount || 0, icon: Users, bg: "bg-dash-orange" },
+    { label: "Curriculum Repository", value: stats?.questionCount || 0, icon: GraduationCap, bg: "bg-dash-purple" },
+    { label: "Global Syncs", value: stats?.submissionCount || 0, icon: Target, bg: "bg-dash-cyan" },
+  ];
+
+  const genderData = [
+    { name: 'Male', value: 60, color: '#ff9a8b' },
+    { name: 'Female', value: 35, color: '#a18cd1' },
+    { name: 'Other', value: 5, color: '#4facfe' },
   ];
 
   return (
@@ -170,41 +181,36 @@ const AdminDashboard = () => {
               Gender Analytics
             </h2>
             <div className="relative w-56 h-56 mb-10">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="112"
-                  cy="112"
-                  r="96"
-                  stroke="currentColor"
-                  strokeWidth="20"
-                  fill="transparent"
-                  className="text-slate-50"
-                />
-                <circle
-                  cx="112"
-                  cy="112"
-                  r="96"
-                  stroke="currentColor"
-                  strokeWidth="20"
-                  fill="transparent"
-                  strokeDasharray="603.18"
-                  strokeDashoffset={603.18 * (1 - 0.6)}
-                  className="text-dash-orange transition-all duration-1000 shadow-xl"
-                />
-                <circle
-                  cx="112"
-                  cy="112"
-                  r="96"
-                  stroke="currentColor"
-                  strokeWidth="20"
-                  fill="transparent"
-                  strokeDasharray="603.18"
-                  strokeDashoffset={603.18 * (1 - 0.35)}
-                  className="text-dash-purple opacity-80"
-                  style={{ transform: `rotate(${360 * 0.6}deg)`, transformOrigin: 'center' }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={genderData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    stroke="none"
+                    animationDuration={1500}
+                  >
+                    {genderData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      borderRadius: '16px', 
+                      border: 'none', 
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                      fontSize: '10px',
+                      fontWeight: '900',
+                      textTransform: 'uppercase'
+                    }} 
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-4xl font-black text-dash-navy tracking-tighter">60%</span>
                 <span className="text-[10px] font-black text-dash-gray uppercase tracking-[0.2em] mt-1">Dominant</span>
               </div>

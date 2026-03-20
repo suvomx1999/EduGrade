@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../utils/api";
 import DashboardLayout from "../components/DashboardLayout";
-import { PlusCircle, FileText, Trash2, ChevronDown, BookOpen, CheckCircle2, Target, Zap, Users, Clock, Calendar, Sparkles } from "lucide-react";
+import { PlusCircle, FileText, Trash2, ChevronDown, BookOpen, CheckCircle2, Target, Zap, Users, Clock, Calendar, Sparkles, Upload, FileUp } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -22,13 +22,42 @@ const MyQuestions = () => {
   });
   const [expandedQuestion, setExpandedQuestion] = useState(null);
   const [submissions, setSubmissions] = useState({});
+  const [keywordStats, setKeywordStats] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
   const [aiContext, setAiContext] = useState("");
   const [showAiModal, setShowAiModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
     fetchQuestions();
   }, []);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setIsExtracting(true);
+    try {
+      const response = await api.post("/ocr/extract", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      
+      // Auto-populate context or text
+      setAiContext(response.data.text);
+      setShowAiModal(true); // Switch to AI generation with extracted text
+      setShowUploadModal(false);
+      alert("Text extracted! You can now use the AI Generator to refine it into a question.");
+    } catch (error) {
+      console.error("Extraction failed", error);
+      alert("Failed to extract text. Please ensure the file is a valid PDF or Image.");
+    } finally {
+      setIsExtracting(false);
+    }
+  };
 
   const fetchQuestions = async () => {
     try {
@@ -76,10 +105,14 @@ const MyQuestions = () => {
     
     if (!submissions[questionId]) {
       try {
-        const response = await api.get(`/submissions/question/${questionId}`);
-        setSubmissions({ ...submissions, [questionId]: response.data });
+        const [subRes, statsRes] = await Promise.all([
+          api.get(`/submissions/question/${questionId}`),
+          api.get(`/submissions/stats/keywords/${questionId}`)
+        ]);
+        setSubmissions({ ...submissions, [questionId]: subRes.data });
+        setKeywordStats({ ...keywordStats, [questionId]: statsRes.data });
       } catch (error) {
-        console.error("Failed to fetch submissions", error);
+        console.error("Failed to fetch submissions or stats", error);
       }
     }
     setExpandedQuestion(questionId);
@@ -127,15 +160,65 @@ const MyQuestions = () => {
                 </div>
                 New Assignment
               </h2>
-              <button 
-                onClick={() => setShowAiModal(true)}
-                className="p-3 bg-dash-purple/10 text-dash-purple rounded-2xl hover:bg-dash-purple/20 transition-all group relative border border-dash-purple/20 shadow-sm"
-                title="AI Assist"
-              >
-                <Sparkles className="h-5 w-5 animate-pulse" />
-                <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-dash-navy text-white text-[9px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap uppercase tracking-widest shadow-xl">AI Generator</span>
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setShowUploadModal(!showUploadModal)}
+                  className="p-3 bg-dash-cyan/10 text-dash-cyan rounded-2xl hover:bg-dash-cyan/20 transition-all group relative border border-dash-cyan/20 shadow-sm"
+                  title="Upload Document"
+                >
+                  <FileUp className="h-5 w-5" />
+                  <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-dash-navy text-white text-[9px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap uppercase tracking-widest shadow-xl">OCR Extract</span>
+                </button>
+                <button 
+                  onClick={() => setShowAiModal(true)}
+                  className="p-3 bg-dash-purple/10 text-dash-purple rounded-2xl hover:bg-dash-purple/20 transition-all group relative border border-dash-purple/20 shadow-sm"
+                  title="AI Assist"
+                >
+                  <Sparkles className="h-5 w-5 animate-pulse" />
+                  <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-dash-navy text-white text-[9px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap uppercase tracking-widest shadow-xl">AI Generator</span>
+                </button>
+              </div>
             </div>
+
+            {showUploadModal && (
+              <div className="mb-8 p-6 bg-dash-cyan/5 rounded-[2rem] border border-dash-cyan/20 animate-fade-in shadow-inner">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-[10px] font-black text-dash-cyan uppercase tracking-[0.2em] flex items-center gap-2">
+                    <FileUp className="h-3 w-3" />
+                    Document Processor
+                  </h3>
+                  <button onClick={() => setShowUploadModal(false)} className="p-1.5 hover:bg-rose-50 rounded-lg text-dash-gray hover:text-rose-500 transition-colors">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="relative group">
+                  <input
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="doc-upload"
+                  />
+                  <label
+                    htmlFor="doc-upload"
+                    className="flex flex-col items-center justify-center w-full h-32 bg-white border-2 border-dashed border-dash-cyan/30 rounded-2xl cursor-pointer hover:bg-dash-cyan/5 transition-all group-hover:border-dash-cyan"
+                  >
+                    {isExtracting ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="animate-spin h-6 w-6 border-2 border-dash-cyan border-t-transparent rounded-full"></div>
+                        <p className="text-[9px] font-black text-dash-cyan uppercase tracking-widest">Processing OCR...</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="h-6 w-6 text-dash-cyan/60 group-hover:scale-110 transition-transform mb-2" />
+                        <p className="text-[9px] font-black text-dash-gray uppercase tracking-widest">Drop PDF or Image here</p>
+                        <p className="text-[8px] font-bold text-dash-gray/60 uppercase mt-1">Max size: 10MB</p>
+                      </>
+                    )}
+                  </label>
+                </div>
+              </div>
+            )}
 
             {showAiModal && (
               <div className="mb-8 p-6 bg-dash-purple/5 rounded-[2rem] border border-dash-purple/20 animate-fade-in shadow-inner">
@@ -327,68 +410,136 @@ const MyQuestions = () => {
                     </div>
 
                     {expandedQuestion === q._id && (
-                      <div className="mt-8 pt-8 border-t border-slate-100 space-y-6 animate-fade-in">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-[10px] font-black text-dash-gray uppercase tracking-[0.2em] flex items-center gap-2">
-                            <Users className="h-3 w-3" />
-                            Student Evaluations
-                          </h4>
-                          <span className="px-3 py-1 bg-dash-purple/5 text-dash-purple text-[10px] font-black rounded-lg border border-dash-purple/10">
-                            {submissions[q._id]?.length || 0} Total Attempts
-                          </span>
-                        </div>
-                        {!submissions[q._id] || submissions[q._id].length === 0 ? (
-                          <div className="p-12 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                            <History className="h-8 w-8 text-slate-200 mx-auto mb-3" />
-                            <p className="text-xs font-bold text-dash-gray italic">No student submissions recorded for this assignment yet.</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            {submissions[q._id].map((sub) => (
-                              <div key={sub._id} className="flex flex-col md:flex-row items-center justify-between p-6 bg-slate-50/50 rounded-[1.5rem] border border-slate-100 hover:bg-white hover:border-dash-purple/20 transition-all gap-6 group/item">
-                                <div className="flex items-center gap-4">
-                                  <div className="relative">
-                                    <img 
-                                      src={sub.student.avatar || `https://ui-avatars.com/api/?name=${sub.student.name}&background=a18cd1&color=fff`} 
-                                      className="h-12 w-12 rounded-2xl object-cover shadow-sm ring-2 ring-white" 
-                                      alt="" 
-                                    />
-                                    {sub.plagiarismFlag && (
-                                      <div className="absolute -top-2 -right-2 bg-rose-500 text-white p-1 rounded-lg shadow-lg animate-bounce">
-                                        <AlertCircle className="h-3 w-3" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <p className="text-sm font-black text-dash-navy group-hover/item:text-dash-purple transition-colors">{sub.student.name}</p>
-                                      {sub.plagiarismFlag && (
-                                        <span className="px-2 py-0.5 bg-rose-50 text-rose-500 text-[8px] font-black uppercase rounded border border-rose-100">Plagiarism</span>
-                                      )}
-                                    </div>
-                                    <p className="text-[10px] font-bold text-dash-gray uppercase tracking-widest">{sub.student.email}</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-8">
-                                  <div className="text-right">
-                                    <p className="text-lg font-black text-dash-navy">{sub.score} / {sub.maxMarks}</p>
-                                    <span className={cn(
-                                      "px-3 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm",
-                                      sub.percentage >= 85 ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
-                                      sub.percentage >= 50 ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-rose-50 text-rose-600 border-rose-100"
-                                    )}>
-                                      {sub.verdict}
-                                    </span>
-                                  </div>
-                                  <div className={cn(
-                                    "w-2 h-12 rounded-full shadow-inner",
-                                    sub.percentage >= 85 ? "bg-emerald-500" : sub.percentage >= 50 ? "bg-amber-500" : "bg-rose-500"
-                                  )}></div>
+                      <div className="mt-8 pt-8 border-t border-slate-100 space-y-10 animate-fade-in">
+                        {/* Keyword Analytics Section */}
+                        {keywordStats[q._id] && keywordStats[q._id].totalAttempts > 0 && (
+                          <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-[10px] font-black text-dash-gray uppercase tracking-[0.2em] flex items-center gap-2">
+                                <Zap className="h-3 w-3 text-dash-orange" />
+                                Class Knowledge Gaps
+                              </h4>
+                              <span className="text-[9px] font-bold text-dash-gray uppercase">Aggregate Data</span>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Most Missed Keywords */}
+                              <div className="p-6 bg-rose-50/50 rounded-[2rem] border border-rose-100 shadow-inner">
+                                <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-4">Critical Gaps (Missed)</p>
+                                <div className="space-y-3">
+                                  {Object.entries(keywordStats[q._id].missingCount).length > 0 ? (
+                                    Object.entries(keywordStats[q._id].missingCount)
+                                      .sort(([,a], [,b]) => b - a)
+                                      .slice(0, 5)
+                                      .map(([kw, count]) => {
+                                        const percentage = Math.round((count / keywordStats[q._id].totalAttempts) * 100);
+                                        return (
+                                          <div key={kw} className="space-y-1.5">
+                                            <div className="flex justify-between text-[10px] font-bold">
+                                              <span className="text-dash-navy">{kw}</span>
+                                              <span className="text-rose-500">{percentage}% of class</span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-rose-100 rounded-full overflow-hidden">
+                                              <div className="h-full bg-rose-500 rounded-full" style={{ width: `${percentage}%` }}></div>
+                                            </div>
+                                          </div>
+                                        );
+                                      })
+                                  ) : (
+                                    <p className="text-[10px] font-bold text-rose-400 italic">No significant gaps detected.</p>
+                                  )}
                                 </div>
                               </div>
-                            ))}
+
+                              {/* Most Mastered Keywords */}
+                              <div className="p-6 bg-emerald-50/50 rounded-[2rem] border border-emerald-100 shadow-inner">
+                                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-4">Conceptual Mastery (Matched)</p>
+                                <div className="space-y-3">
+                                  {Object.entries(keywordStats[q._id].matchedCount).length > 0 ? (
+                                    Object.entries(keywordStats[q._id].matchedCount)
+                                      .sort(([,a], [,b]) => b - a)
+                                      .slice(0, 5)
+                                      .map(([kw, count]) => {
+                                        const percentage = Math.round((count / keywordStats[q._id].totalAttempts) * 100);
+                                        return (
+                                          <div key={kw} className="space-y-1.5">
+                                            <div className="flex justify-between text-[10px] font-bold">
+                                              <span className="text-dash-navy">{kw}</span>
+                                              <span className="text-emerald-600">{percentage}% of class</span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-emerald-100 rounded-full overflow-hidden">
+                                              <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${percentage}%` }}></div>
+                                            </div>
+                                          </div>
+                                        );
+                                      })
+                                  ) : (
+                                    <p className="text-[10px] font-bold text-emerald-400 italic">No mastery data yet.</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         )}
+
+                        <div className="space-y-6">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-[10px] font-black text-dash-gray uppercase tracking-[0.2em] flex items-center gap-2">
+                              <Users className="h-3 w-3" />
+                              Student Evaluations
+                            </h4>
+                            <span className="px-3 py-1 bg-dash-purple/5 text-dash-purple text-[10px] font-black rounded-lg border border-dash-purple/10">
+                              {submissions[q._id]?.length || 0} Total Attempts
+                            </span>
+                          </div>
+                          {!submissions[q._id] || submissions[q._id].length === 0 ? (
+                            <div className="p-12 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                              <BookOpen className="h-8 w-8 text-slate-200 mx-auto mb-3" />
+                              <p className="text-xs font-bold text-dash-gray italic">No student submissions recorded for this assignment yet.</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              {submissions[q._id].map((sub) => (
+                                <div key={sub._id} className="flex flex-col md:flex-row items-center justify-between p-6 bg-slate-50/50 rounded-[1.5rem] border border-slate-100 hover:bg-white hover:border-dash-purple/20 transition-all gap-6 group/item">
+                                  <div className="flex items-center gap-4">
+                                    <div className="relative">
+                                      <img 
+                                        src={sub.student.avatar || `https://ui-avatars.com/api/?name=${sub.student.name}&background=a18cd1&color=fff`} 
+                                        className="h-12 w-12 rounded-2xl object-cover shadow-sm ring-2 ring-white" 
+                                        alt="" 
+                                      />
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-sm font-black text-dash-navy group-hover/item:text-dash-purple transition-colors">{sub.student.name}</p>
+                                        {sub.plagiarismFlag && (
+                                          <span className="px-2 py-0.5 bg-rose-50 text-rose-500 text-[8px] font-black uppercase rounded border border-rose-100">Plagiarism</span>
+                                        )}
+                                      </div>
+                                      <p className="text-[10px] font-bold text-dash-gray uppercase tracking-widest">{sub.student.email}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-8">
+                                    <div className="text-right">
+                                      <p className="text-lg font-black text-dash-navy">{sub.score} / {sub.maxMarks}</p>
+                                      <span className={cn(
+                                        "px-3 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm",
+                                        sub.percentage >= 85 ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
+                                        sub.percentage >= 50 ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-rose-50 text-rose-600 border-rose-100"
+                                      )}>
+                                        {sub.verdict}
+                                      </span>
+                                    </div>
+                                    <div className={cn(
+                                      "w-2 h-12 rounded-full shadow-inner",
+                                      sub.percentage >= 85 ? "bg-emerald-500" : sub.percentage >= 50 ? "bg-amber-500" : "bg-rose-500"
+                                    )}></div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

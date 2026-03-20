@@ -3,3 +3,8 @@ uvicorn
 sentence-transformers
 torch
 pydantic
+easyocr
+pymupdf
+numpy
+pillow
+python-multipart

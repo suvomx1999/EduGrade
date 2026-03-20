@@ -31,6 +31,22 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "local",
     },
+    badges: [{
+      type: {
+        type: String,
+        enum: ["Perfect Score", "Fast Finisher", "Academic Streak", "Early Bird", "Master of Keywords"],
+      },
+      awardedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      description: String,
+      icon: String, // lucide-react icon name
+    }],
+    streakCount: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

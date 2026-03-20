@@ -14,7 +14,7 @@ mongoose
 // Middleware
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: true, // Allow all origins in development for better reachability
     credentials: true,
   })
 );
@@ -32,6 +32,7 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/questions", require("./routes/questions"));
 app.use("/api/submissions", require("./routes/submissions"));
 app.use("/api/admin", require("./routes/admin"));
+app.use("/api/ocr", require("./routes/ocr"));
 
 // Global Error Handler
 app.use((err, req, res, next) => {

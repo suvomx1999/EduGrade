@@ -1,16 +1,25 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, util
 import torch
 import re
+import easyocr
+import fitz # PyMuPDF
+import numpy as np
+from PIL import Image
+import io
 
 app = FastAPI()
 
-# Load model once at startup
+# Load models once at startup
 print("Loading BERT model (all-MiniLM-L6-v2)...")
 model = SentenceTransformer("all-MiniLM-L6-v2")
 print("Model loaded successfully!")
+
+print("Initializing EasyOCR Reader...")
+reader = easyocr.Reader(['en']) # Support English
+print("EasyOCR initialized!")
 
 # CORS configuration
 # Using 5001 as we moved the backend port
@@ -74,6 +83,41 @@ async def generate_question(req: GenerationRequest):
             "keywords": keywords
         }
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/extract-text")
+async def extract_text(file: UploadFile = File(...)):
+    try:
+        contents = await file.read()
+        filename = file.filename.lower()
+        
+        extracted_text = ""
+        
+        if filename.endswith(('.pdf')):
+            # Process PDF
+            doc = fitz.open(stream=contents, filetype="pdf")
+            for page in doc:
+                extracted_text += page.get_text()
+            doc.close()
+            
+        elif filename.endswith(('.png', '.jpg', '.jpeg', '.webp')):
+            # Process Image with EasyOCR
+            image = Image.open(io.BytesIO(contents))
+            # Convert PIL image to numpy array for EasyOCR
+            img_array = np.array(image)
+            results = reader.readtext(img_array)
+            extracted_text = " ".join([res[1] for res in results])
+            
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file format. Please upload PDF or Image.")
+
+        if not extracted_text.strip():
+            raise HTTPException(status_code=400, detail="No text could be extracted from the file.")
+
+        return {"text": extracted_text.strip()}
+        
+    except Exception as e:
+        print(f"Extraction Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/similarity")

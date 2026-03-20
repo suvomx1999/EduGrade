@@ -1,6 +1,7 @@
 const express = require("express");
 const axios = require("axios");
 const Question = require("../models/Question");
+const Submission = require("../models/Submission");
 const { protect, requireRole } = require("../middleware/auth");
 const router = express.Router();
 
@@ -26,26 +27,23 @@ router.post("/generate", protect, requireRole("teacher", "admin"), async (req, r
   }
 });
 
-// @desc    Get all active questions
+// @desc    Get all questions with submission counts
 // @route   GET /api/questions
 // @access  Protected
 router.get("/", protect, async (req, res) => {
   try {
-    const questions = await Question.find({ isActive: true }).populate(
-      "createdBy",
-      "name"
+    const questions = await Question.find().sort({ createdAt: -1 }).lean();
+    
+    // For each question, get total submissions
+    const questionsWithStats = await Promise.all(
+      questions.map(async (q) => {
+        const submissionCount = await Submission.countDocuments({ question: q._id });
+        const plagiarismCount = await Submission.countDocuments({ question: q._id, plagiarismFlag: true });
+        return { ...q, submissionCount, plagiarismCount };
+      })
     );
 
-    // Strip modelAnswer for students
-    const responseData = questions.map((q) => {
-      const questionObj = q.toObject();
-      if (req.user.role === "student") {
-        delete questionObj.modelAnswer;
-      }
-      return questionObj;
-    });
-
-    res.status(200).json(responseData);
+    res.status(200).json(questionsWithStats);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

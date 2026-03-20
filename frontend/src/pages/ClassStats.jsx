@@ -2,6 +2,16 @@ import { useState, useEffect } from "react";
 import api from "../utils/api";
 import DashboardLayout from "../components/DashboardLayout";
 import { Users, GraduationCap, Target, TrendingUp, BarChart3, PieChart, ChevronRight, Activity, Download } from "lucide-react";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Cell
+} from 'recharts';
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -52,9 +62,9 @@ const ClassStats = () => {
   };
 
   const performanceMetrics = [
-    { label: "Active Students", value: stats?.totalUsers || "0", icon: Users, color: "text-dash-orange", bg: "bg-dash-orange/10" },
-    { label: "Course Content", value: stats?.totalQuestions || "0", icon: GraduationCap, color: "text-dash-purple", bg: "bg-dash-purple/10" },
-    { label: "Global Submissions", value: stats?.totalSubmissions || "0", icon: Activity, color: "text-dash-cyan", bg: "bg-dash-cyan/10" },
+    { label: "Active Students", value: stats?.userCount || "0", icon: Users, color: "text-dash-orange", bg: "bg-dash-orange/10" },
+    { label: "Course Content", value: stats?.questionCount || "0", icon: GraduationCap, color: "text-dash-purple", bg: "bg-dash-purple/10" },
+    { label: "Global Submissions", value: stats?.submissionCount || "0", icon: Activity, color: "text-dash-cyan", bg: "bg-dash-cyan/10" },
     { label: "Avg. Class Score", value: `${stats?.averageScore || 0}%`, icon: Target, color: "text-emerald-500", bg: "bg-emerald-50" },
   ];
 
@@ -112,27 +122,49 @@ const ClassStats = () => {
                 </div>
               </div>
               
-              <div className="relative h-72 flex items-end justify-between gap-6 px-4">
-                {[65, 85, 45, 90, 75, 55, 80].map((val, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-6 group">
-                    <div className="relative w-full">
-                      <div 
-                        className="w-full bg-slate-50/50 rounded-t-2xl group-hover:bg-slate-100 transition-all duration-500 border border-slate-100/50 shadow-inner" 
-                        style={{ height: '240px' }}
-                      ></div>
-                      <div 
-                        className="absolute bottom-0 w-full bg-gradient-to-t from-dash-purple to-[#c0a9f0] rounded-t-2xl shadow-xl shadow-purple-100 group-hover:brightness-110 transition-all duration-1000 origin-bottom animate-grow-up" 
-                        style={{ height: `${val * 2.4}px`, animationDelay: `${i * 100}ms` }}
-                      ></div>
-                      
-                      {/* Tooltip */}
-                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-dash-navy text-white text-[10px] font-black px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all shadow-xl">
-                        {val}%
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-black text-dash-gray uppercase tracking-widest">Batch {String.fromCharCode(65 + i)}</span>
+              <div className="relative h-72">
+                {stats?.distribution && stats.distribution.some(d => d.count > 0) ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stats.distribution}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis 
+                        dataKey="range" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fill: '#a3aed0', fontSize: 10, fontWeight: 'bold' }} 
+                      />
+                      <YAxis hide={true} />
+                      <Tooltip 
+                        cursor={{ fill: 'transparent' }}
+                        contentStyle={{ 
+                          borderRadius: '16px', 
+                          border: 'none', 
+                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                          fontSize: '10px',
+                          fontWeight: '900',
+                          textTransform: 'uppercase'
+                        }} 
+                      />
+                      <Bar 
+                        dataKey="count" 
+                        radius={[8, 8, 0, 0]} 
+                        animationDuration={1500}
+                      >
+                        {stats.distribution.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={index === stats.distribution.length - 1 ? '#ff9a8b' : '#a18cd1'} 
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
+                    <BarChart3 className="h-8 w-8 text-slate-200 mb-2" />
+                    <p className="text-[10px] font-black text-dash-gray uppercase tracking-widest">Awaiting student submissions...</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>

@@ -99,9 +99,24 @@ const TeacherDashboard = () => {
   };
 
   const stats = [
-    { label: "Total Students", value: "1,256", icon: Users, bg: "bg-dash-orange" },
-    { label: "Active Teachers", value: "102", icon: GraduationCap, bg: "bg-dash-purple" },
-    { label: "Private Sessions", value: "102", icon: Target, bg: "bg-dash-cyan" },
+    { 
+      label: "Global Attempts", 
+      value: questions.reduce((acc, q) => acc + (q.submissionCount || 0), 0), 
+      icon: Users, 
+      bg: "bg-dash-orange" 
+    },
+    { 
+      label: "Total Questions", 
+      value: questions.length, 
+      icon: GraduationCap, 
+      bg: "bg-dash-purple" 
+    },
+    { 
+      label: "Plagiarism Flags", 
+      value: questions.reduce((acc, q) => acc + (q.plagiarismCount || 0), 0), 
+      icon: Target, 
+      bg: "bg-dash-cyan" 
+    },
   ];
 
   return (
