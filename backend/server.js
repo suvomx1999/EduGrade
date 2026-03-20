@@ -12,9 +12,10 @@ mongoose
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // Middleware
+const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
 app.use(
   cors({
-    origin: true, // Allow all origins in development for better reachability
+    origin: [clientUrl, "http://localhost:5173", "https://edugrade-ai.vercel.app"], // Add your final vercel domain here later
     credentials: true,
   })
 );

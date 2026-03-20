@@ -60,6 +60,34 @@ npm install
 npm run dev
 ```
 
+## 🌐 Deployment Guide
+
+### 1. Backend (Render)
+- **Service Type**: Web Service
+- **Environment**: Node.js
+- **Build Command**: `cd backend && npm install`
+- **Start Command**: `cd backend && node server.js`
+- **Environment Variables**:
+  - `PORT`: 5001
+  - `MONGO_URI`: Your MongoDB Atlas URI
+  - `JWT_SECRET`: A secure random string
+  - `CLIENT_URL`: Your Vercel frontend URL
+  - `NLP_SERVICE_URL`: Your Render NLP service URL
+
+### 2. NLP Service (Render)
+- **Service Type**: Web Service
+- **Environment**: Python
+- **Build Command**: `cd nlp-service && pip install -r requirements.txt`
+- **Start Command**: `cd nlp-service && uvicorn main:app --host 0.0.0.0 --port 8000`
+- **Environment Variables**:
+  - `PORT`: 8000
+
+### 3. Frontend (Vercel)
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+- **Environment Variables**:
+  - `VITE_API_URL`: Your Render backend URL (e.g., `https://your-backend.onrender.com/api`)
+
 ## 📊 Evaluation & Metrics
 The platform calculates:
 - **Semantic Similarity**: Using BERT embeddings.

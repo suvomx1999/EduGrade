@@ -22,10 +22,9 @@ reader = easyocr.Reader(['en']) # Support English
 print("EasyOCR initialized!")
 
 # CORS configuration
-# Using 5001 as we moved the backend port
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5001"],
+    allow_origins=["*"], # In production, you might want to restrict this to your backend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
