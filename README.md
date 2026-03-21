@@ -77,16 +77,18 @@ npm run dev
 ### 2. NLP Service (Render)
 - **Service Type**: Web Service
 - **Environment**: Python
-- **Build Command**: `cd nlp-service && pip install -r requirements.txt`
+- **Build Command**: `export CARGO_HOME=/opt/render/project/src/.cargo && cd nlp-service && pip install --no-cache-dir -r requirements.txt`
 - **Start Command**: `cd nlp-service && uvicorn main:app --host 0.0.0.0 --port 8000`
 - **Environment Variables**:
   - `PORT`: 8000
+  - `PYTHON_VERSION`: 3.9.0 (Recommended for compatibility)
 
 ### 3. Frontend (Vercel)
 - **Build Command**: `npm run build`
 - **Output Directory**: `dist`
 - **Environment Variables**:
-  - `VITE_API_URL`: Your Render backend URL (e.g., `https://your-backend.onrender.com/api`)
+  - `VITE_API_URL`: Your Render backend URL **including `/api`** (e.g., `https://edugrade-backend-85vb.onrender.com/api`)
+  - **CRITICAL**: Do NOT omit the `/api` at the end of the URL, otherwise the login will fail with a 404.
 
 ## 📊 Evaluation & Metrics
 The platform calculates:
