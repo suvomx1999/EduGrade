@@ -1,7 +1,13 @@
 import axios from "axios";
 
+const rawBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
+// Automatically append /api if it's missing to prevent 404 errors in production
+const normalizedBaseUrl = rawBaseUrl.endsWith("/api") 
+  ? rawBaseUrl 
+  : `${rawBaseUrl.replace(/\/$/, "")}/api`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: normalizedBaseUrl,
 });
 
 // Request interceptor: attach Authorization: Bearer <token> if token exists
