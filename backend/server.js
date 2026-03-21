@@ -5,11 +5,20 @@ require("dotenv").config();
 
 const app = express();
 
-// Connect to MongoDB
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+// Connect to MongoDB with options
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 10s
+    });
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+  } catch (err) {
+    console.error(`❌ MongoDB connection error: ${err.message}`);
+    // Don't exit the process on Render, let it retry or report via logs
+  }
+};
+
+connectDB();
 
 // Middleware
 const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
