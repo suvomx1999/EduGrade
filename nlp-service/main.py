@@ -145,6 +145,11 @@ async def evaluate(req: EvaluationRequest):
             # Split student answer into tokens for individual word similarity
             student_tokens = re.findall(r'\b\w+\b', student_answer_lower)
             
+            # OPTIMIZATION: Pre-encode student tokens once if we need semantic keyword matching
+            token_embeddings = None
+            if student_tokens:
+                token_embeddings = model.encode(student_tokens)
+            
             for kw in req.keywords:
                 kw_lower = kw.lower()
                 # 1. Exact match with regex
@@ -154,9 +159,8 @@ async def evaluate(req: EvaluationRequest):
                 
                 # 2. Semantic match for the keyword itself against student tokens
                 # This helps if the student uses a synonym for a keyword
-                if student_tokens:
+                if token_embeddings is not None:
                     kw_embedding = model.encode(kw_lower)
-                    token_embeddings = model.encode(student_tokens)
                     token_sims = util.cos_sim(kw_embedding, token_embeddings)[0]
                     if torch.max(token_sims).item() > 0.85: # High threshold for keyword synonym
                         matched_keywords.append(kw)
